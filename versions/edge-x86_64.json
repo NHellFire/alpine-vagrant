@@ -1,0 +1,8 @@
+{
+  "disk_size": "20480",
+  "version": "edge",
+  "arch": "x86_64",
+  "iso_url": "http://dl-cdn.alpinelinux.org/alpine/v3.7/releases/x86_64/alpine-standard-3.7.0-x86_64.iso",
+  "iso_checksum": "d0fb4b6ef56af0651e2cf398c201deb8e957907cb99421b1a6ade4d8d981b81a",
+  "iso_checksum_type": "sha256"
+}

@@ -1,14 +1,15 @@
 {
   "variables": {
     "disk_size": "20480",
-    "version": "3.7",
+    "version": "3.7.0",
+    "arch": "x86_64",
     "iso_url": "http://dl-cdn.alpinelinux.org/alpine/v3.7/releases/x86_64/alpine-standard-3.7.0-x86_64.iso",
     "iso_checksum": "d0fb4b6ef56af0651e2cf398c201deb8e957907cb99421b1a6ade4d8d981b81a",
     "iso_checksum_type": "sha256"
   },
   "builders": [
     {
-      "name": "alpine-{{user `version`}}-amd64-libvirt",
+      "name": "alpine-{{user `version`}}-{{user `arch`}}-libvirt",
       "type": "qemu",
       "accelerator": "kvm",
       "qemuargs": [
@@ -47,7 +48,7 @@
       "shutdown_command": "poweroff"
     },
     {
-      "name": "alpine-{{user `version`}}-amd64-virtualbox",
+      "name": "alpine-{{user `version`}}-{{user `arch`}}-virtualbox",
       "type": "virtualbox-iso",
       "guest_os_type": "Linux26_64",
       "guest_additions_mode": "attach",
@@ -94,7 +95,9 @@
   "provisioners": [
     {
       "type": "shell",
-      "execute_command": "sh {{.Path}}",
+      "environment_vars": [
+          "PACKER_BUILD_VERSION={{user `version`}}"
+      ],
       "scripts": ["provision.sh"]
     }
   ],

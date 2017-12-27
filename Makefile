@@ -1,27 +1,40 @@
-VERSION=$(shell jq -r .variables.version alpine.json)
+VERSIONS := $(shell jq -r '.version + "-" + .arch' versions/*.json)
+LIBVIRT_TARGETS := $(foreach v,$(VERSIONS),alpine-$(v)-libvirt.box)
+VIRTUALBOX_TARGETS := $(foreach v,$(VERSIONS),alpine-$(v)-virtualbox.box)
+ALL_TARGETS := $(foreach v,$(VERSIONS),alpine-$(v)-libvirt.box alpine-$(v)-virtualbox.box)
 
 help:
-	@echo type make build-libvirt or make build-virtualbox
+	@echo "Call make with one (or more) of these targets:\\n";
 
-build-libvirt: alpine-${VERSION}-amd64-libvirt.box
+	@echo "libvirt:"
+	@echo "\tbuild-libvirt - this will build all versions"
+	@$(foreach t,$(LIBVIRT_TARGETS),echo \\t$(t);)
 
-build-virtualbox: alpine-${VERSION}-amd64-virtualbox.box
+	@echo;
 
-alpine-${VERSION}-amd64-libvirt.box: answers-libvirt.tmp provision.sh alpine.json Vagrantfile.template
-	rm -f alpine-${VERSION}-amd64-libvirt.box
-	PACKER_KEY_INTERVAL=10ms packer build -only=alpine-${VERSION}-amd64-libvirt -on-error=abort alpine.json
+	@echo "virtualbox:"
+	@echo "\tbuild-virtualbox - this will build all versions"
+	@$(foreach t,$(VIRTUALBOX_TARGETS),echo \\t$(t);)
+
+build-libvirt: $(LIBVIRT_TARGETS)
+
+build-virtualbox: $(VIRTUALBOX_TARGETS)
+
+$(LIBVIRT_TARGETS): alpine-%-libvirt.box: answers-libvirt.tmp provision.sh alpine.json versions/%.json Vagrantfile.template
+	$(RM) $@
+	PACKER_KEY_INTERVAL=10ms packer build -only=$(@:.box=) -on-error=abort -var-file=versions/$*.json alpine.json
 	@echo BOX successfully built!
 	@echo to add to local vagrant install do:
-	@echo vagrant box add -f alpine-${VERSION}-amd64 alpine-${VERSION}-amd64-libvirt.box
+	@echo vagrant box add -f $(@:-libvirt.box=) $@
 
 answers-libvirt.tmp: answers
 	sed 's,/dev/sda,/dev/vda,g' $< >$@
 
-alpine-${VERSION}-amd64-virtualbox.box: answers provision.sh alpine.json Vagrantfile.template
-	rm -f alpine-${VERSION}-amd64-virtualbox.box
-	packer build -only=alpine-${VERSION}-amd64-virtualbox -on-error=abort alpine.json
+$(VIRTUALBOX_TARGETS): alpine-%-virtualbox.box: answers-libvirt.tmp provision.sh alpine.json versions/%.json Vagrantfile.template
+	$(RM) $@
+	PACKER_KEY_INTERVAL=10ms packer build -only=$(@:.box=) -on-error=abort -var-file=versions/$*.json alpine.json
 	@echo BOX successfully built!
 	@echo to add to local vagrant install do:
-	@echo vagrant box add -f alpine-${VERSION}-amd64 alpine-${VERSION}-amd64-virtualbox.box
+	@echo vagrant box add -f $(@:-virtualbox.box=) $@
 
 .PHONY: buid-libvirt build-virtualbox

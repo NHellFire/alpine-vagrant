@@ -4,6 +4,8 @@ set -eu
 # echo all the executed commands.
 set -x
 
+[ "$PACKER_BUILD_VERSION" = "edge" ] && echo http://dl-cdn.alpinelinux.org/alpine/edge/main > /etc/apk/repositories
+
 ALPINE_VERSION=$(awk -F/ '/^https?:\/\/.*\/alpine\/.*?\/main$/ { print $(NF-1); exit}' /etc/apk/repositories)
 if [ -z "$ALPINE_VERSION" ]; then
 	echo "Failed to determine Alpine version"
@@ -11,6 +13,11 @@ if [ -z "$ALPINE_VERSION" ]; then
 	cat /etc/apk/repositories
 	exit 1
 fi
+
+# Enable community repo
+echo http://dl-cdn.alpinelinux.org/alpine/$ALPINE_VERSION/community >>/etc/apk/repositories
+# Enable testing if we're running edge
+[ "$ALPINE_VERSION" = "edge" ] && echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 
 # upgrade all packages.
 apk upgrade -U --available
@@ -31,12 +38,6 @@ install -d -m 700 /home/vagrant/.ssh
 wget -qO /home/vagrant/.ssh/authorized_keys https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub
 chmod 600 /home/vagrant/.ssh/authorized_keys
 chown -R vagrant:vagrant /home/vagrant/.ssh
-
-# Enable community repo
-echo http://dl-cdn.alpinelinux.org/alpine/$ALPINE_VERSION/community >>/etc/apk/repositories
-# Enable testing if we're running edge
-[ "$ALPINE_VERSION" = "edge" ] && echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
-apk update
 
 # install the Guest Additions.
 if [ "$(cat /sys/devices/virtual/dmi/id/board_name)" == 'VirtualBox' ]; then
