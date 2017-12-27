@@ -4,6 +4,14 @@ set -eu
 # echo all the executed commands.
 set -x
 
+ALPINE_VERSION=$(awk -F/ '/^https?:\/\/.*\/alpine\/.*?\/main$/ { print $(NF-1); exit}' /etc/apk/repositories)
+if [ -z "$ALPINE_VERSION" ]; then
+	echo "Failed to determine Alpine version"
+	echo "Contents of /etc/apk/repositories:"
+	cat /etc/apk/repositories
+	exit 1
+fi
+
 # upgrade all packages.
 apk upgrade -U --available
 
@@ -24,10 +32,15 @@ wget -qO /home/vagrant/.ssh/authorized_keys https://raw.githubusercontent.com/mi
 chmod 600 /home/vagrant/.ssh/authorized_keys
 chown -R vagrant:vagrant /home/vagrant/.ssh
 
+# Enable community repo
+echo http://dl-cdn.alpinelinux.org/alpine/$ALPINE_VERSION/community >>/etc/apk/repositories
+# Enable testing if we're running edge
+[ "$ALPINE_VERSION" = "edge" ] && echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+apk update
+
 # install the Guest Additions.
 if [ "$(cat /sys/devices/virtual/dmi/id/board_name)" == 'VirtualBox' ]; then
 # install the VirtualBox Guest Additions.
-echo http://mirrors.dotsrc.org/alpine/v3.7/community >>/etc/apk/repositories
 apk add -U virtualbox-guest-additions virtualbox-guest-modules-hardened
 rc-update add virtualbox-guest-additions
 echo vboxsf >>/etc/modules
